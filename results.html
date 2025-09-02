@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>תוצאות חיפוש - מעקב מחירים</title>
+    <meta name="description" content="השוואת מחירים וקבלת התראות על המוצרים שחיפשת">
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            direction: rtl;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header */
+        .header {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .search-bar {
+            flex: 1;
+            max-width: 500px;
+            margin: 0 30px;
+            position: relative;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px 50px 12px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 25px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            text-align: right;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .search-btn {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .search-btn:hover {
+            background: #5a67d8;
+        }
+        
+        /* Search Summary */
+        .search-summary {
+            background: rgba(255,255,255,0.9);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .search-query {
+            font-size: 1.8rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .search-stats {
+            display: flex;
+            gap: 30px;
+            color: #666;
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        /* Filters */
+        .filters-section {
+            background: rgba(255,255,255,0.9);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .filters-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .filter-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .filter-select, .filter-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .apply-filters-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .apply-filters-btn:hover {
+            background: #5a67d8;
+        }
+        
+        /* Results */
+        .results-section {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .result-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 25px;
+            display: grid;
+            grid-template-columns: 120px 1fr auto;
+            gap: 20px;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        
+        .product-image {
+            width: 100px;
+            height: 100px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            border: 2px solid #e9ecef;
+        }
+        
+        .product-info {
+            flex: 1;
+        }
+        
+        .product-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        
+        .product-specs {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        
+        .store-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .store-logo {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+        
+        .store-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .availability {
+            font-size: 0.85rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            margin-right: 10px;
+        }
+        
+        .availability.in-stock {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .availability.limited {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .availability.out-of-stock {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .price-section {
+            text-align: center;
+            min-width: 150px;
+        }
+        
+        .current-price {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 5px;
+        }
+        
+        .original-price {
+            font-size: 1rem;
+            color: #999;
+            text-decoration: line-through;
+            margin-bottom: 8px;
+        }
+        
+        .discount-badge {
+            background: #e74c3c;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .buy-btn {
+            background: #27ae60;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+        }
+        
+        .buy-btn:hover {
+            background: #219a52;
+            transform: translateY(-1px);
+        }
+        
+        .track-btn {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .track-btn:hover {
+            background: #5a67d8;
+        }
+        
+        .best-price-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.3);
+        }
+        
+        .result-card.best-price {
+            position: relative;
+            border: 2px solid #f39c12;
+        }
+        
+        /* Price Alert Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #333;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .submit-alert-btn {
+            width: 100%;
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .submit-alert-btn:hover {
+            background: #5a67d8;
+        }
+        
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .search-bar {
+                margin: 0;
+                max-width: 100%;
+            }
+            
+            .result-card {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with Search -->
+        <header class="header">
+            <a href="index.html" class="logo">
+                🛒 מעקב מחירים
+            </a>
+            
+            <div class="search-bar">
+                <input type="text" class="search-input" id="searchInput" placeholder="חפש מוצר אחר...">
+                <button class="search-btn" onclick="performSearch()">🔍</button>
+            </div>
+            
+            <div style="font-size: 0.9rem; color: #666;">
+                מעקב בזמן אמת
+            </div>
+        </header>
+        
+        <!-- Search Summary -->
+        <section class="search-summary">
+            <h1 class="search-query" id="searchQuery">תוצאות עבור: "אייפון 15 פרו"</h1>
+            <div class="search-stats">
+                <div class="stat-item">
+                    <span>📊</span>
+                    <span id="resultsCount">5 תוצאות נמצאו</span>
+                </div>
+                <div class="stat-item">
+                    <span>🏪</span>
+                    <span>4 חנויות</span>
+                </div>
+                <div class="stat-item">
+                    <span>💰</span>
+                    <span>טווח מחירים: ₪4,299 - ₪5,199</span>
+                </div>
+                <div class="stat-item">
+                    <span>⏱️</span>
+                    <span>עודכן לאחרונה: לפני 2 דקות</span>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Filters -->
+        <section class="filters-section">
+            <h3 class="filters-title">סינון תוצאות</h3>
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label class="filter-label">מיין לפי:</label>
+                    <select class="filter-select" id="sortFilter">
+                        <option value="price-low">מחיר: נמוך לגבוה</option>
+                        <option value="price-high">מחיר: גבוה לנמוך</option>
+                        <option value="store">חנות</option>
+                        <option value="availability">זמינות</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">חנות:</label>
+                    <select class="filter-select" id="storeFilter">
+                        <option value="">כל החנויות</option>
+                        <option value="ksp">KSP</option>
+                        <option value="bug">Bug</option>
+                        <option value="zap">זאפ</option>
+                        <option value="ivory">Ivory</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">מחיר מינימלי:</label>
+                    <input type="number" class="filter-input" id="minPrice" placeholder="₪">
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label">מחיר מקסימלי:</label>
+                    <input type="number" class="filter-input" id="maxPrice" placeholder="₪">
+                </div>
+                
+                <button class="apply-filters-btn" onclick="applyFilters()">
+                    החל מסננים
+                </button>
+            </div>
+        </section>
+        
+        <!-- Results -->
+        <section class="results-section" id="resultsContainer">
+            <!-- Loading state -->
+            <div class="loading" id="loadingState" style="display: none;">
+                <div class="spinner"></div>
+                <p>מחפש מוצרים בכל החנויות...</p>
+            </div>
+            
+            <!-- Sample Results -->
+            <div class="result-card best-price">
+                <div class="best-price-badge">🏆 המחיר הטוב ביותר</div>
+                <div class="product-image">📱</div>
+                <div class="product-info">
+                    <h3 class="product-name">Apple iPhone 15 Pro 256GB Natural Titanium</h3>
+                    <p class="product-specs">256GB אחסון • מעבד A17 Pro • מצלמה 48MP • טיטניום טבעי</p>
+                    <div class="store-info">
+                        <div class="store-logo">Z</div>
+                        <span class="store-name">זאפ השוואת מחירים</span>
+                        <span class="availability in-stock">במלאי</span>
+                    </div>
+                </div>
+                <div class="price-section">
+                    <div class="original-price">₪5,199</div>
+                    <div class="current-price">₪4,299</div>
+                    <div class="discount-badge">חיסכון ₪900</div>
+                    <div class="action-buttons">
+                        <a href="#" class="buy-btn" target="_blank">עבור לרכישה</a>
+                        <button class="track-btn" onclick="openTrackModal('iPhone 15 Pro', '4299')">עקוב אחר מחיר</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="result-card">
+                <div class="product-image">📱</div>
+                <div class="product-info">
+                    <h3 class="product-name">Apple iPhone 15 Pro 256GB Natural Titanium</h3>
+                    <p class="product-specs">256GB אחסון • מעבד A17 Pro • מצלמה 48MP</p>
+                    <div class="store-info">
+                        <div class="store-logo">K</div>
+                        <span class="store-name">KSP</span>
+                        <span class="availability in-stock">במלאי</span>
+                    </div>
+                </div>
+                <div class="price-section">
+                    <div class="current-price">₪4,799</div>
+                    <div class="action-buttons">
+                        <a href="#" class="buy-btn" target="_blank">עבור לרכישה</a>
+                        <button class="track-btn" onclick="openTrackModal('iPhone 15 Pro KSP', '4799')">עקוב אחר מחיר</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="result-card">
+                <div class="product-image">📱</div>
+                <div class="product-info">
+                    <h3 class="product-name">Apple iPhone 15 Pro 256GB טיטניום טבעי</h3>
+                    <p class="product-specs">256GB • A17 Pro • Triple Camera</p>
+                    <div class="store-info">
+                        <div class="store-logo">B</div>
+                        <span class="store-name">Bug</span>
+                        <span class="availability limited">מלאי מוגבל</span>
+                    </div>
+                </div>
+                <div class="price-section">
+                    <div class="current-price">₪4,899</div>
+                    <div class="action-buttons">
+                        <a href="#" class="buy-btn" target="_blank">עבור לרכישה</a>
+                        <button class="track-btn" onclick="openTrackModal('iPhone 15 Pro Bug', '4899')">עקוב אחר מחיר</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="result-card">
+                <div class="product-image">📱</div>
+                <div class="product-info">
+                    <h3 class="product-name">iPhone 15 Pro 256GB Natural Titanium</h3>
+                    <p class="product-specs">256GB Storage • A17 Pro Chip</p>
+                    <div class="store-info">
+                        <div class="store-logo">I</div>
+                        <span class="store-name">Ivory</span>
+                        <span class="availability out-of-stock">אזל מהמלאי</span>
+                    </div>
+                </div>
+                <div class="price-section">
+                    <div class="current-price">₪5,199</div>
+                    <div class="action-buttons">
+                        <a href="#" class="buy-btn" style="background: #ccc; pointer-events: none;">לא זמין</a>
+                        <button class="track-btn" onclick="openTrackModal('iPhone 15 Pro Ivory', '5199')">התראה כשזמין</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <!-- Price Alert Modal -->
+    <div id="trackModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeTrackModal()">&times;</span>
+            <h2 class="modal-title">🔔 הגדר מעקב מחיר</h2>
+            <form id="trackForm">
+                <div class="form-group">
+                    <label class="form-label">מוצר:</label>
+                    <input type="text" class="form-input" id="trackProductName" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">מחיר נוכחי:</label>
+                    <input type="text" class="form-input" id="trackCurrentPrice" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">כתובת אימייל:</label>
+                    <input type="email" class="form-input" id="trackEmail" placeholder="your@email.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">מספר טלפון (אופציונלי):</label>
+                    <input type="tel" class="form-input" id="trackPhone" placeholder="050-1234567">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">התרעה כשהמחיר יורד מתחת ל:</label>
+                    <input type="number" class="form-input" id="trackTargetPrice" placeholder="הכנס מחיר יעד...">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">משך המעקב:</label>
+                    <select class="form-input" id="trackDuration">
+                        <option value="7">שבוע</option>
+                        <option value="14">שבועיים</option>
+                        <option value="30">חודש</option>
+                        <option value="90">3 חודשים</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="submit-alert-btn">
+                    📬 התחל מעקב
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Get search query from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchQuery = urlParams.get('q') || 'אייפון 15 פרו';
+        document.getElementById('searchQuery').textContent = `תוצאות עבור: "${searchQuery}"`;
+        document.getElementById('searchInput').value = searchQuery;
+        
+        // Search functionality
+        function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                // Show loading
+                document.getElementById('loadingState').style.display = 'block';
+                document.getElementById('resultsContainer').style.display = 'none';
+                
+                // Simulate search delay
+                setTimeout(() => {
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('resultsContainer').style.display = 'grid';
+                    document.getElementById('searchQuery').textContent = `תוצאות עבור: "${query}"`;
+                }, 1500);
+            }
+        }
+        
+        // Enter key search
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+        
+        // Filter functionality
+        function applyFilters() {
+            const sortBy = document.getElementById('sortFilter').value;
+            const store = document.getElementById('storeFilter').value;
+            const minPrice = document.getElementById('minPrice').value;
+            const maxPrice = document.getElementById('maxPrice').value;
+            
+            // Show loading
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('resultsContainer').style.display = 'none';
+            
+            // Simulate filtering delay
+            setTimeout(() => {
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('resultsContainer').style.display = 'grid';
+                
+                console.log('Filters applied:', { sortBy, store, minPrice, maxPrice });
+                // Here you would actually filter the results
+            }, 1000);
+        }
+        
+        // Price tracking modal
+        function openTrackModal(productName, price) {
+            document.getElementById('trackProductName').value = productName;
+            document.getElementById('trackCurrentPrice').value = `₪${price}`;
+            document.getElementById('trackModal').style.display = 'block';
+        }
+        
+        function closeTrackModal() {
+            document.getElementById('trackModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('trackModal');
+            if (event.target === modal) {
+                closeTrackModal();
+            }
+        }
+        
+        // Track form submission
+        document.getElementById('trackForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                productName: document.getElementById('trackProductName').value,
+                currentPrice: document.getElementById('trackCurrentPrice').value,
+                email: document.getElementById('trackEmail').value,
+                phone: document.getElementById('trackPhone').value,
+                targetPrice: document.getElementById('trackTargetPrice').value,
+                duration: document.getElementById('trackDuration').value
+            };
+            
+            console.log('Track request:', formData);
+            
+            // Show success message
+            alert('🎉 מעקב המחיר הופעל בהצלחה!\n\nתקבל התראה כשהמחיר ישתנה או יירד מתחת למחיר היעד.');
+            
+            closeTrackModal();
+            
+            // Reset form
+            document.getElementById('trackForm').reset();
+        });
+        
+        // Simulate real-time price updates
+        setInterval(() => {
+            const prices = document.
